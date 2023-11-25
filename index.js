@@ -1,198 +1,78 @@
-// Packages needed for this application
-const inquirer = require('inquirer');
-const generateMarkdown = require('./utils/generateMarkdown.js');
-const fs = require('fs');
-// Array of questions for user input
-const questions = [
-    {
-        type: 'input',
-        name: 'title',
-        message: 'What is the title of your project? (Required)',
-        validate: titleInput => {
-            if (titleInput) {
-                return true;
-            } else {
-                console.log('Please enter your title!');
-                return false;
-            }
-        }
-    },
-    {
-        type: 'input',
-        name: 'githubUsername',
-        message: 'What is your GitHub Username? (Required)',
-        validate: githubInput => {
-            if (githubInput) {
-                return true;
-            } else {
-                console.log('Please enter your GitHub username!');
-                return false;
-            }
-        }
-    },
-    {
-        type: 'input',
-        name: 'email',
-        message: 'What is your email address? (Required)',
-        validate: githubInput => {
-            if (githubInput) {
-                return true;
-            } else {
-                console.log('Please enter your email address!');
-                return false;
-            }
-        }
-    },
-    {
-        type: 'input',
-        name: 'what',
-        message: 'What is your project and what problem will it solve? (Required)',
-        validate: whatInput => {
-            if (whatInput) {
-                return true;
-            } else {
-                console.log('Please enter what your project is!');
-                return false;
-            }
-        }
-    },
-    {
-        type: 'input',
-        name: 'why',
-        message: 'Why did you create this project? (Required)',
-        validate: whyInput => {
-            if (whyInput) {
-                return true;
-            } else {
-                console.log('Please enter why you created this project!');
-                return false;
-            }
-        }
-    },
-    {
-        type: 'input',
-        name: 'how',
-        message: 'How will someone use this? (Required)',
-        validate: howInput => {
-            if (howInput) {
-                return true;
-            } else {
-                console.log('Please enter what your project is!');
-                return false;
-            }
-        }
-    },
-    {
-        type: 'input',
-        name: 'installation',
-        message: 'Please provide step-by-step installation instructions for your project. (Required)',
-        validate: installInput => {
-            if (installInput) {
-                return true;
-            } else {
-                console.log('Please enter your installation instructions!');
-                return false;
-            }
-        }
-    },
-    {
-        type: 'input',
-        name: 'usage',
-        message: 'Please provide instructions and examples for use. (Required)',
-        validate: usageInput => {
-            if (usageInput) {
-                return true;
-            } else {
-                console.log('Please enter your use instructions!');
-                return false;
-            }
-        }
-    },
-    {
-        type: 'list',
-        name: 'license',
-        message: 'Which license will you use for your project?',
-        choices: ['agpl', 'apache', 'mit', 'no license']
-    },
-    {
-        type: 'confirm',
-        name: 'confirmContributers',
-        message: 'Would you like to allow other developers to contribute?',
-        default: true
-    },
-    {
-        type: 'input',
-        name: 'contribute',
-        message: 'Please provide guidelines for contributing. (Required)',
-        when: ({ confirmContributers }) => {
-            if (confirmContributers) {
-                return true;
-            } else {
-                return false;
-            }
+// Dependencies needed for this application
+const inquirer = require("inquirer");
+const fs = require("fs");
+const util = require("util");
+
+// Links questions to README template
+const ReadMeTemplate = require("./src/ReadMeTemplate");
+
+// Creates a function to write README file
+const createFile = util.promisify(fs.writeFile);
+
+//Creates an array of questions for user input
+const promptUser = () => {
+    return inquirer.prompt([
+        {
+            type:'input',
+            name:'username',
+            message:'Enter GitHub username:'
         },
-        validate: contributerInput => {
-            if (contributerInput) {
-                return true;
-            } else {
-                console.log('Please enter contributer guidelines!');
-                return false;
-            }
-        }
-    },
-    {
-        type: 'input',
-        name: 'test',
-        message: 'Please provide instructions on how to test the app. (Required)',
-        validate: testInput => {
-            if (testInput) {
-                return true;
-            } else {
-                console.log('Please enter your use test instructions!');
-                return false;
-            }
-        }
-    }
-];
-
-// function to write README file
-const writeFile = fileContent => {
-    return new Promise((resolve, reject) => {
-        fs.writeFile('./dist/generated-README.md', fileContent, err => {
-            if (err) {
-                reject(err);
-                return;
-            }
-
-            resolve({
-                ok: true,
-                message: 'File created!'
-            });
-        });
-    });
+        {
+            type:'input',
+            name:'projectTitle',
+            message:'What is the project title?'
+        },
+        {
+            type:'input',
+            name:'description',
+            message:'Describe the project:'
+        },
+        {
+            type:'input',
+            name:'installation',
+            message:'What are the steps required to install your project?'
+        },
+        {
+            type:'input',
+            name:'usage',
+            message:'Provide instructions and examples for use. Include screenshots as needed:'
+        },
+        {
+            type:'input',
+            name:'credits',
+            message:'List your collaborators, if any. If none, skip or type "N/A":'
+        },
+        {
+            type:'list',
+            name:'license',
+            message:'Choose the license for this project:',
+            choices: ['GNU AGPL', 'GNU LGPL', 'Mozilla', 'Apache','MIT', 'Boost Software','The Unlicense']
+        },
+        {
+            type:'input',
+            name:'features',
+            message:'List project features/languages:'
+        },
+        {
+            type:'input',
+            name:'contributing',
+            message:'If you would like others to contribute to your app/package, add guidelines for how to do so. If not, skip or type "N/A":'
+        },
+    ])
 };
 
-// function to prompt questions and store user inputs
-const init = () => {
+// Create a function to initialize app
+async function init() {
+    try {
+        const data = await promptUser();
+        const createContent = ReadMeTemplate(data);
 
-    return inquirer.prompt(questions)
-    .then(readmeData => {
-        return readmeData;
-    })
-}
+        await createFile('./sample/README.md', createContent);
+        console.log('Successfully created README.md');
+    } catch(err) {
+        console.log(err);
+    }
+};
 
-// Function call to initialize app
-init()
-.then(readmeData => {
-    console.log(readmeData);
-    return generateMarkdown(readmeData);
-})
-.then(pageMD => {
-    return writeFile(pageMD);
-})
-.then(writeFileResponse => {
-    console.log(writeFileResponse.message);
-})
-.catch(err => {
-    console.log(err);
-})
+// Calls function to initialize app
+init();
